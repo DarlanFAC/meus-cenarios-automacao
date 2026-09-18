@@ -1,0 +1,470 @@
+{
+  "name": "Qualificando Leads",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "621ea05c-cb63-4e90-926f-08b8eb60f97a",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        32
+      ],
+      "id": "41ff8172-e98b-4082-af65-c102aafd19af",
+      "name": "Webhook",
+      "webhookId": "621ea05c-cb63-4e90-926f-08b8eb60f97a"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dados = $input.first().json.body;\n\nreturn [\n  {\n    json: {\n      nome: dados.nome,\n      empresa: dados.empresa,\n      mensagem: dados.mensagem,\n      recebido_em: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        32
+      ],
+      "id": "a16b735a-d71f-49e7-bf6c-bab5fe1d47b0",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Você é um assistente de qualificação de leads para uma empresa de automação.\n\nAnalise o lead abaixo e retorne APENAS um JSON válido, sem texto adicional, sem markdown, sem ```:\n\nNome: {{ $json.nome }}\nEmpresa: {{ $json.empresa }}\nMensagem: {{ $json.mensagem }}\n\nFormato de saída obrigatório:\n{\n  \"categoria\": \"Quente\" ou \"Morno\" ou \"Frio\",\n  \"pontuacao\": número de 0 a 100,\n  \"motivo\": \"breve justificação em uma frase\"\n}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        448,
+        32
+      ],
+      "id": "36c1ee96-be07-4001-9d09-2b483e7297dd",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GJTKttx3enzIlMDW",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.categoria }}",
+                    "rightValue": "Quente",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "1295cadf-3d7c-47a1-a52e-ca9f8aab53ce"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Quente"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "37f10392-381b-4b05-b340-be4f163959ab",
+                    "leftValue": "={{ $json.categoria }}",
+                    "rightValue": "Morno",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Morno"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "6a4d2857-ec1b-4187-adff-5fbe5eb188e4",
+                    "leftValue": "={{ $json.categoria }}",
+                    "rightValue": "Frio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Frio"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1024,
+        16
+      ],
+      "id": "30e75da9-5cb7-4133-9860-f81f280516f9",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resposta = $input.first().json.content.parts[0].text;\nconst dados = JSON.parse(resposta);\n\nreturn [\n  {\n    json: {\n      nome: $('Code in JavaScript').first().json.nome,\n      empresa: $('Code in JavaScript').first().json.empresa,\n      categoria: dados.categoria,\n      pontuacao: dados.pontuacao,\n      motivo: dados.motivo\n    }\n  }\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        32
+      ],
+      "id": "a0e12789-bf41-47c9-8b56-3eeda5f47eed",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "dataSourceId": {
+          "__rl": true,
+          "value": "37cdcd82-cbe9-8042-914f-000bab0dd6f7",
+          "mode": "list",
+          "cachedResultName": "Desafio 4 Qualificação de Leads",
+          "cachedResultUrl": "https://app.notion.com/p/37cdcd82cbe98001a922e82521fd1f26"
+        },
+        "title": "={{ $json.nome }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Pontuação|number",
+              "numberValue": "={{ $json.pontuacao }}"
+            },
+            {
+              "key": "Tem Opinião|rich_text",
+              "textContent": "={{ $json.motivo }}"
+            },
+            {
+              "key": "Conhece a Empresa|rich_text",
+              "textContent": "={{ $json.empresa }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [
+        1248,
+        -160
+      ],
+      "id": "e811bf5d-dd93-4aa9-848e-0eeb18e07402",
+      "name": "Quente",
+      "credentials": {
+        "notionApi": {
+          "id": "dxBzMbKxgSFx2iip",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "dataSourceId": {
+          "__rl": true,
+          "value": "37cdcd82-cbe9-8042-914f-000bab0dd6f7",
+          "mode": "list",
+          "cachedResultName": "Desafio 4 Qualificação de Leads",
+          "cachedResultUrl": "https://app.notion.com/p/37cdcd82cbe98001a922e82521fd1f26"
+        },
+        "title": "={{ $json.nome }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Conhece a Empresa|rich_text",
+              "textContent": "={{ $json.empresa }}"
+            },
+            {
+              "key": "Pontuação|number",
+              "numberValue": "={{ $json.pontuacao }}"
+            },
+            {
+              "key": "Tem Opinião|rich_text",
+              "textContent": "={{ $json.motivo }}"
+            },
+            {
+              "key": "Status|status"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [
+        1248,
+        32
+      ],
+      "id": "6ff0aded-e8f4-4d40-91be-c3e55abbf2d4",
+      "name": "Morno",
+      "credentials": {
+        "notionApi": {
+          "id": "dxBzMbKxgSFx2iip",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "dataSourceId": {
+          "__rl": true,
+          "value": "37cdcd82-cbe9-8042-914f-000bab0dd6f7",
+          "mode": "list",
+          "cachedResultName": "Desafio 4 Qualificação de Leads",
+          "cachedResultUrl": "https://app.notion.com/p/37cdcd82cbe98001a922e82521fd1f26"
+        },
+        "title": "={{ $json.nome }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|status",
+              "statusValue": "={{ $json.categoria }}"
+            },
+            {
+              "key": "Tem Opinião|rich_text",
+              "textContent": "={{ $json.motivo }}"
+            },
+            {
+              "key": "Conhece a Empresa|rich_text",
+              "textContent": "={{ $json.empresa }}"
+            },
+            {
+              "key": "Pontuação|number",
+              "numberValue": "={{ $json.pontuacao }}"
+            }
+          ]
+        },
+        "blockUi": {
+          "blockValues": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [
+        1248,
+        224
+      ],
+      "id": "93d058ed-6e61-494c-a79c-9e2bb75f0b2a",
+      "name": "Frio",
+      "credentials": {
+        "notionApi": {
+          "id": "dxBzMbKxgSFx2iip",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "darlan.napratica@gmail.com",
+        "subject": "🔥 Novo lead QUENTE recebido! ",
+        "message": "=🔥 Novo lead QUENTE recebido! \n\nNome: {{ $json.name }}\nEmpresa: {{ $json.property_conhece_a_empresa }}\nPontuação:{{ $json[\"property_pontuação\"] }}\nMotivo: {{ $json[\"property_tem_opinião\"] }}\n\nContacta o mais rápido possível!",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1472,
+        -160
+      ],
+      "id": "a0f8fcb7-987d-4f90-be9a-8cce44125f54",
+      "name": "Send a message",
+      "webhookId": "3cf4bda4-6e0a-4223-9ef3-78a7a335da70",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "m7H5Vd7GFGfw8WhK",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "text": "=🔥 Novo lead Morno recebido! \nNome:  {{ $json.name }}\nEmpresa: {{ $json.property_conhece_a_empresa }}\nPontuação: {{ $json[\"property_pontuação\"] }}\nMotivo: {{ $json[\"property_tem_opinião\"] }} \nContacta o mais rápido possível!",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1472,
+        32
+      ],
+      "id": "bb2d386f-baef-42b9-944d-8be101b0af9a",
+      "name": "Send a message1",
+      "webhookId": "d706cc19-dbe3-485b-b5f1-3f1616823861",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "8DwfOKyCptAX4cpI",
+          "name": "Slack account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Quente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Morno",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Frio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quente": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Morno": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "03fc3e06-919d-4898-a09e-02da77a32006",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "69cd856347d84de650c81842c50a4b96b30af3c2d5f43d42fde9b0a45289a197"
+  },
+  "nodeGroups": [],
+  "id": "CszkgdOIYa5N8TVX",
+  "tags": []
+}
